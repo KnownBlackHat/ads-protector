@@ -68,23 +68,26 @@ def get_link(data: dict) -> str:
 
 while True:
     try:
-        search_id = input("\n [+] Enter the search id: ")
+        search_id = " ".join(input("\n [+] Enter the search id: ").split())
 
         if search_id == "exit" or search_id == "quit":
             raise KeyboardInterrupt
+        elif "/" in search_id:
+            print("\n [!] '/' Character not allowed")
+            continue
         else:
             print("\n [*] Searching for id...")
             search_data = []
-            ERROR = False
+            error_bool = False
             for id in search_id.split(" "):
                 try:
                     search_data.append(get_data(id))
                 except Exception as e:
                     print("\n [!] Error: " + str(e))
-                    ERROR = True
+                    error_bool = True
                     break
 
-            if ERROR:
+            if error_bool:
                 continue
             time.sleep(6)
 
