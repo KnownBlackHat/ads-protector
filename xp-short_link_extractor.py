@@ -1,15 +1,18 @@
+import sys
 import requests
-import time
+from time import sleep
 from bs4 import BeautifulSoup
 
 
 BASE_URL = "https://xpshort.com/"
-REFERER = "https://a.finsurances.co/"
+REFERER = "https://www.apanmusic.in/"
 
 
 def get_data(search_id: str) -> dict:
     """Gets the data needed to get the link"""
 
+    if search_id.startswith('http'):
+        search_id = search_id.split('/')[-1]
     HEADERS = {
             "User-Agent": "Magic Browser",
             "Referer": REFERER
@@ -20,11 +23,11 @@ def get_data(search_id: str) -> dict:
     try:
         return {
                 "ad_form_data":
-                soup.find("input", {"name": "ad_form_data"})["value"],
+                soup.find("input", {"name": "ad_form_data"})["value"],  # type: ignore
                 "token_field":
-                soup.find("input", {"name": "_Token[fields]"})["value"],
+                soup.find("input", {"name": "_Token[fields]"})["value"],  # type: ignore
                 "token_unlocked":
-                soup.find("input", {"name": "_Token[unlocked]"})["value"],
+                soup.find("input", {"name": "_Token[unlocked]"})["value"],  # type: ignore
                 "csrf_token": response1.cookies["csrfToken"],
                 "cookie": response1.cookies.get_dict()
                 }
@@ -66,39 +69,23 @@ def get_link(data: dict) -> str:
         raise Exception("Unable to get link")
 
 
-while True:
+def main():
     try:
-        search_id = " ".join(input("\n [+] Enter the search id: ").split())
-
-        if search_id == "exit" or search_id == "quit":
-            raise KeyboardInterrupt
-        elif "/" in search_id:
-            print("\n [!] '/' Character not allowed")
-            continue
-        else:
-            print("\n [*] Searching for id...")
-            search_data = []
-            error_bool = False
-            for id in search_id.split(" "):
-                try:
-                    search_data.append(get_data(id))
-                except Exception as e:
-                    print("\n [!] Error: " + str(e))
-                    error_bool = True
-                    break
-
-            if error_bool:
-                continue
-            time.sleep(6)
-
-            print("\n [*] Searching for Link...")
-            for data in search_data:
-                try:
-                    print("\n [+] Link: " + get_link(data))
-                except Exception as e:
-                    print("\n [!] Error: " + str(e))
-                    break
-
+        sys.argv[1]
+    except IndexError:
+        print(f"Usage: {sys.argv[0]} [links | id]")
+        exit()
+    try:
+        links = sys.argv[1:]
+        resolved_id = [ id for id in map(lambda x: get_data(x), links) ]
+        sleep(6)
+        resolved_links = [ link for link in map(lambda x: get_link(x), resolved_id) ]
+        for i in resolved_links:
+            print(i)
     except (KeyboardInterrupt, EOFError, SystemExit):
-        print("\n\n [!] Exiting...")
-        break
+        print("Exitting... ")
+        exit()
+
+
+if __name__ == "__main__":
+    main()
