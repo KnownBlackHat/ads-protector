@@ -1,16 +1,16 @@
 import re
 import sys
+from typing import Generator, List
 from bs4 import BeautifulSoup
 import requests as req
 
 
 class DropGalaxy:
-    def __init__(self, url: str) -> None:
-        self.url = url
-        self.id = url.split('/')[-1]
+    def __init__(self) -> None:
+        self.base_url = "https://dropgalaxy.co/"
 
-    def get_token(self) -> str:
-        token = f"[hostname=dropgalaxy.co][id={self.id}]"
+    def _get_token(self, id: str) -> str:
+        token = f"[hostname=dropgalaxy.co][id={id}]"
         msg = [ord(x) for x in token]
         msg = str(msg).replace('[', '').replace(']', '')
         msg = msg.replace('2', '004').replace('3', '005').replace('7', '007')
@@ -33,18 +33,17 @@ class DropGalaxy:
                         headers=headers)
         return resp.text
 
-    def get_link(self) -> str:
+    def _get_link(self, id: str) -> str:
         headers = {
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36'
         }
-        xd = self.get_token()
         data = {
             'op': 'download2',
-            'id': self.id,
-            'xd': xd,
+            'id': id,
+            'xd': self._get_token(id)
         }
 
-        resp = req.post(self.url, headers=headers, data=data)
+        resp = req.post(self.base_url + id, headers=headers, data=data)
         soup = BeautifulSoup(resp.content, 'html.parser')
         form_element = soup.find('form', id='dllink')
         if form_element:
@@ -54,6 +53,14 @@ class DropGalaxy:
         else:
             raise ValueError()
 
+    def _link_id(self, url: str) -> str:
+        return url.split('/')[-1]
+
+    def __call__(self, url_array: List[str]) -> Generator:
+        ids = (self._link_id(url) for url in url_array)
+        urls = (self._get_link(id) for id in ids)
+        return urls
+
 
 if __name__ == '__main__':
     try:
@@ -61,6 +68,7 @@ if __name__ == '__main__':
     except IndexError:
         print(f"{sys.argv[0]} [link]")
         exit()
-    for url in urls:
-        drpglxy = DropGalaxy(url)
-        print(drpglxy.get_link())
+    resolver = DropGalaxy()
+    links = resolver(urls)
+    for link in links:
+        print(link)
